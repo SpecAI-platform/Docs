@@ -84,7 +84,8 @@
       {
         "group": "Contributing",
         "pages": [
-          "contributing/guide"
+          "contributing/guide",
+          "contributing/troubleshooting"
         ]
       }
     ]

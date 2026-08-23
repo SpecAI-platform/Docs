@@ -16,23 +16,23 @@
       },
       {
         "group": "Architecture",
-        "pages": ["architecture/overview", "architecture/services", "architecture/caching", "architecture/security"]
+        "pages": ["Architecture/overview", "Architecture/services", "Architecture/caching", "Architecture/security"]
       },
       {
         "group": "AI Agents",
-        "pages": ["agents/overview", "agents/srs", "agents/chatbot", "agents/insights", "agents/jira", "agents/confluence", "agents/tester"]
+        "pages": ["Agents/overview", "Agents/srs", "Agents/chatbot", "Agents/insights", "Agents/jira", "Agents/confluence", "Agents/tester"]
       },
       {
         "group": "Ingestion & Integrations",
-        "pages": ["ingestion/overview", "ingestion/browser-extension", "ingestion/file-upload", "ingestion/email", "ingestion/github", "ingestion/jira-confluence"]
+        "pages": ["Ingestion/overview", "Ingestion/browser-extension", "Ingestion/file-upload", "Ingestion/email", "Ingestion/github", "Ingestion/jira-confluence"]
       },
       {
         "group": "CI/CD & Infrastructure",
-        "pages": ["infrastructure/cicd", "infrastructure/branch-protection", "infrastructure/deployment", "infrastructure/hosting"]
+        "pages": ["Infrastructure/cicd", "Infrastructure/branch-protection", "Infrastructure/deployment", "Infrastructure/hosting"]
       },
       {
         "group": "Contributing",
-        "pages": ["contributing/guide", "contributing/troubleshooting", "contributing/env-vars", "contributing/roadmap"]
+        "pages": ["Contributing/guide", "Contributing/troubleshooting", "Contributing/env-vars", "Contributing/roadmap"]
       }
     ]
   },

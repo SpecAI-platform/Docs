@@ -1,0 +1,88 @@
+---
+title: "Contribution Guide"
+description: "How to contribute to SpecAI — branch workflow, PR checklist, and CI requirements"
+---
+
+SpecAI is built by a small team. Contributions follow a deliberate, structured workflow to keep the 12-service monorepo stable.
+
+## Before you start
+
+1. Make sure you can run everything locally. Follow the [Quickstart](/quickstart) guide completely and confirm `pnpm health` shows all services green.
+2. Understand the [Branch Workflow](/infrastructure/branches) — especially the default-branch quirk.
+3. Read the relevant architecture docs for the area you're changing.
+
+## Branch naming
+
+| Type | Pattern | Example |
+| --- | --- | --- |
+| Feature | `feature/short-description` | `feature/jira-agent-ticket-creation` |
+| Bug fix | `fix/short-description` | `fix/rbac-cache-invalidation` |
+| Documentation | `docs/short-description` | `docs/agent-overview-page` |
+| Chore / config | `chore/short-description` | `chore/add-render-deploy-hooks` |
+
+## PR checklist
+
+Before opening a PR, confirm:
+
+- [ ] Branched off `staging` (not `production`)
+- [ ] `pnpm turbo run build` passes locally (all TypeScript services compile)
+- [ ] `uv run pytest` passes in every agent you changed
+- [ ] No `.env` values committed (check `git diff` for secrets)
+- [ ] PR description explains **what** changed and **why**
+- [ ] Base branch in the PR UI is set to `staging` (not `production` — GitHub defaults to `production`)
+
+## CI requirements
+
+All 12 status checks must pass before a PR can merge:
+
+```text
+Web App, Core Service, Auth Service, Mail Service,
+Jobs Service, Connectors Service,
+Bot Agent, Doc Agent, Scenarios Agent,
+Insights Agent, Jira Agent, Confluence Agent
+```
+
+The CI workflow runs:
+
+- `turbo run build` \+ `turbo run test` for each TypeScript service
+- `uv run pytest` for each Python agent
+
+<Warning>
+  Python agents require at least one test file or pytest exits with code 5 and fails the required check. Placeholder tests exist in each agent — keep them or replace with real tests, but never delete all test files from an agent.
+</Warning>
+
+## Making changes to shared code
+
+### `agent-common` (shared Python library)
+
+Changes to `services/agents/common` affect all six agents, since each bakes its own copy at build time.
+
+- Test the change in at least two agents before merging
+- Expect all six agent CI jobs to rebuild (this is correct behavior)
+- CD will need to redeploy all six agents when the library changes
+
+### Root `pnpm-workspace.yaml` / `turbo.json`
+
+Changes to workspace configuration can affect all Node services. Test `pnpm install` and `pnpm turbo run build` from the repo root before pushing.
+
+### Root `.npmrc`
+
+`node-linker=hoisted` is required. Do not change this without fully understanding the pnpm hoisting implications for Next.js and Vercel's output file tracing.
+
+## Commit message convention
+
+Use conventional commit prefixes:
+
+```text
+feat: add JIRA agent ticket classification logic
+fix: correct RBAC cache key pattern for project-scoped permissions
+docs: add caching strategy architecture page
+chore: add Render deploy hooks for Python agents
+test: replace placeholder tests with real unit tests in bot agent
+```
+
+## Getting help
+
+- Email: [specccsai@gmail.com](mailto:specccsai@gmail.com)
+- Check [Troubleshooting](/contributing/troubleshooting) for common local dev issues
+- Review the [Roadmap](/contributing/roadmap) to understand what's in progress

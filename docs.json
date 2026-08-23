@@ -83,7 +83,9 @@
       },
       {
         "group": "Contributing",
-        "pages": []
+        "pages": [
+          "contributing/guide"
+        ]
       }
     ]
   },

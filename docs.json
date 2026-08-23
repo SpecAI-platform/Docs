@@ -68,8 +68,13 @@
           "ingestion/browser-extension",
           "ingestion/file-upload",
           "ingestion/email",
-          "ingestion/github"
+          "ingestion/github",
+          "ingestion/jira-confluence"
         ]
+      },
+      {
+        "group": "CI/CD & Infrastructure",
+        "pages": []
       }
     ]
   },

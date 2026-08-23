@@ -1,0 +1,90 @@
+---
+title: "JIRA & Confluence"
+description: "Bidirectional integration: ingest JIRA issues and Confluence pages into the knowledge base, and write back tickets and pages from AI agents"
+---
+
+SpecAI's JIRA and Confluence integration is **bidirectional**: content flows in (ingestion) and actions flow out (agent outputs). Both directions go through the **Connectors service**.
+
+## Inbound: ingesting from JIRA & Confluence
+
+### From JIRA
+
+Connect a JIRA project to automatically ingest:
+
+- Issue titles and descriptions
+- Comments and status change history
+- Labels, priority, assignee metadata
+- Sprint and epic context
+
+This gives the knowledge base a live picture of what's tracked, who's responsible, and what the current ticket state is.
+
+### From Confluence
+
+Connect a Confluence space to ingest:
+
+- Page content (title \+ body)
+- Comments
+- Page metadata (author, last updated, space/parent)
+
+This means existing documentation becomes searchable context for all AI agents.
+
+## Outbound: writing from AI agents
+
+### JIRA Agent → JIRA
+
+The [JIRA Agent](/agents/jira) creates tickets in the connected JIRA project based on ingested context. It calls the Connectors service, which holds the JIRA API credentials and executes the API call.
+
+### Confluence Agent → Confluence
+
+The [Confluence Agent](/agents/confluence) creates and updates Confluence pages in the connected space. It also calls the Connectors service for the outbound API interaction.
+
+## The Connectors service
+
+All JIRA and Confluence API calls (both inbound webhooks and outbound actions) go through `services/connectors` (port `5004`).
+
+```text
+# Inbound
+JIRA webhook → Connectors → Core (ingestion pipeline)
+Confluence webhook → Connectors → Core
+
+# Outbound
+JIRA Agent → Connectors → JIRA API
+Confluence Agent → Connectors → Confluence API
+```
+
+**Why centralize in Connectors?**
+
+- Credentials (API tokens, OAuth) are stored and managed in one place
+- The JIRA and Confluence agents don't need direct API access — they use internal HTTP calls to Connectors
+- Rate limiting, retry logic, and credential refresh are handled once, not in each agent
+
+## Recurring sync (Scheduler)
+
+In addition to webhook-triggered ingestion, the Scheduler service (`services/jobs`) can set up **recurring sync jobs** to pull the latest JIRA and Confluence content on a schedule (e.g., every 15 minutes). This ensures the knowledge base stays current even if webhooks are missed.
+
+```bash
+# QStash scheduling env vars (for the Scheduler service)
+QSTASH_TOKEN=<from Upstash dashboard>
+QSTASH_CURRENT_SIGNING_KEY=<from Upstash dashboard>
+QSTASH_NEXT_SIGNING_KEY=<from Upstash dashboard>
+```
+
+## Setting up
+
+<Steps>
+  <Step title="Connect in project settings">
+    Go to project settings → Integrations. Connect your Atlassian account (OAuth) to enable both JIRA and Confluence.
+  </Step>
+  <Step title="Select targets">
+    Choose the JIRA project and Confluence space to connect. These are the targets for both inbound ingestion and outbound agent actions.
+  </Step>
+  <Step title="Configure sync">
+    Choose whether to use webhook-triggered ingestion, scheduled sync, or both. Webhooks are lower latency; scheduled sync is more reliable for environments where webhooks may be missed.
+  </Step>
+</Steps>
+
+## Current status
+
+<Info>
+  Connectors service is scaffolded with health check and internal auth. JIRA and Confluence OAuth flows and webhook handling are in active development.
+</Info>

@@ -1,0 +1,45 @@
+---
+title: "JIRA Agent"
+description: "Generates and writes back JIRA-ready issues from your project knowledge base — epics, stories, and tasks with proper formatting and metadata"
+icon: "user-robot"
+---
+
+## Overview
+
+The JIRA Agent turns unstructured project context — meeting notes, emails, docs, and discussions already sitting in your SpecAI knowledge base — into structured JIRA issues. It drafts epics, stories, and tasks, and can push them directly into a connected JIRA project through the [JIRA & Confluence connector](/Ingestion/jira-confluence).
+
+This agent handles the **write-back** half of the JIRA integration. For how JIRA issues are pulled _into_ SpecAI in the first place, see [Ingestion Overview](/Ingestion/overview).
+
+## What it does
+
+- Reads relevant context from the project knowledge base (pgvector similarity search over ingested content)
+- Drafts issue titles, descriptions, and acceptance criteria in JIRA's expected format
+- Suggests an issue type (Epic, Story, Task, Bug) based on the context
+- Groups related work into epics when it detects a larger initiative
+- Optionally creates the issue directly in your connected JIRA project via the Connectors service
+
+## How it works
+
+1. A user triggers the agent from a project — either on a specific note/thread, or with a free-text prompt describing what needs to become a ticket
+2. The agent retrieves relevant chunks from the knowledge base using RAG
+3. It drafts one or more candidate issues, shown to the user for review before anything is written back
+4. On confirmation, the request is sent through `services/connectors` (Express/TS) using the internal `X-Internal-Key` header, which handles the actual JIRA API call
+5. The created issue's key and URL are stored back in the knowledge base, linking the ticket to its source context
+
+## Trigger
+
+Available from:
+
+- A project thread or note (via the "Create JIRA issue" action)
+- The chat interface, by asking the Chatbot Agent to hand off to JIRA
+- Programmatically, through the agent's endpoint in `services/agents/jira`
+
+## Tech
+
+Like SpecAI's other five agents, this is a Python/FastAPI service built with `uv`, sharing common RAG and prompt utilities from `libs/agent_common`.
+
+## Related
+
+- [JIRA & Confluence Integration](/Ingestion/jira-confluence) — the ingestion side of this connector
+- [Confluence Agent](/Agents/confluence) — the equivalent agent for Confluence pages
+- [AI Agents Overview](/Agents/overview)

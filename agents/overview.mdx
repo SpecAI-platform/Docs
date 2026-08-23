@@ -1,0 +1,103 @@
+---
+title: "AI Agents Overview"
+description: "How SpecAI's six specialized AI agents work, what they share, and how to trigger them"
+---
+
+SpecAI runs **six independently deployable AI agent services**, each one a Python/FastAPI application that operates on a project's knowledge base to produce a specific type of output.
+
+## What all agents share
+
+All six agents are built on a common internal library (`agent-common`) that gives them:
+
+<CardGroup cols={2}>
+  <Card title="LLM Provider Abstraction" icon="sliders">
+    Switch between a **local model** (useful during development — no API costs, runs offline) and **cloud APIs** (Gemini, GPT) in production. End users never need to run models themselves.
+  </Card>
+
+  <Card title="RAG Retrieval" icon="magnifying-glass">
+    Every agent retrieves context from the project's knowledge base using **vector similarity search** over pgvector embeddings before calling the LLM.
+  </Card>
+
+  <Card title="Retrieval Caching" icon="bolt">
+    RAG retrieval results are cached in **Redis** (cache-aside, short TTL) so repeated queries against an unchanged knowledge base skip the expensive vector search.
+  </Card>
+
+  <Card title="Shared Schemas" icon="shapes">
+    Pydantic models for requests and responses are defined once in `agent-common` and imported by all six agents, keeping the API surface consistent.
+  </Card>
+</CardGroup>
+
+## The six agents
+
+| Agent | Slug | Port | What it produces |
+| --- | --- | --- | --- |
+| [SRS Document](/agents/srs) | `doc` | `5006` | Software Requirements Specification (MoSCoW) |
+| [Chatbot](/agents/chatbot) | `bot` | `5005` | Real-time RAG answers with source citations |
+| [Insights](/agents/insights) | `insights` | `5008` | Risks, gaps, project-state breakdowns |
+| [JIRA](/agents/jira) | `jira` | `5009` | JIRA tickets filed automatically |
+| [Confluence](/agents/confluence) | `confluence` | `5010` | Confluence pages created/updated |
+| [Tester](/agents/tester) | `scenarios` | `5007` | Test cases and scenarios |
+
+## How agents are triggered
+
+Agents are triggered by the **Core Domain service** in response to user actions (e.g., "Generate SRS" button) or automatically when new content is ingested. Core routes the job to the correct agent service via internal HTTP, using the `INTERNAL_API_KEY` for authentication.
+
+```text
+User action / ingestion event
+  └─► Core service
+        ├── Dispatch job to queue (QStash)
+        └─► Agent service (e.g., /agents/doc/run)
+              ├── Retrieve project KB chunks (RAG, cached)
+              ├── Call LLM (local or cloud)
+              ├── Write output to Postgres
+              └── Update job status (Postgres + Redis write-through)
+```
+
+The frontend subscribes to job status changes via **Supabase Realtime** and shows output as soon as the agent completes.
+
+## LLM switching
+
+Each agent can use either:
+
+- **Local model** — for AI-focused developers who want to develop/test without API costs or internet access (model runs on your machine)
+- **Cloud LLM** — Gemini (`GEMINI_API_KEY`) or GPT for production usage
+
+The switch is configured per-deployment via environment variables. The `agent-common` library handles all provider differences so individual agents just call `llm.complete(prompt)` regardless of which backend is active.
+
+## Deployment
+
+Each agent is **independently deployable** to Render. A change to one agent rebuilds and redeploys only that agent via its own Render Deploy Hook.
+
+<Warning>
+  Changes to the shared `agent-common` library **trigger a rebuild of all six agents**, since each one bakes its own copy of the shared code into its deployment image at build time. Factor this into CI/CD planning.
+</Warning>
+
+## Current status
+
+All six agent services are scaffolded with health-check endpoints and internal auth middleware. Agent logic is still being built out — placeholder test files exist so CI passes. See [Development Roadmap](/contributing/roadmap).
+
+<CardGroup cols={2}>
+  <Card title="SRS Document Agent" icon="file-lines" href="/agents/srs">
+    Generates requirements specs
+  </Card>
+
+  <Card title="Chatbot Agent" icon="message-bot" href="/agents/chatbot">
+    Answers questions with RAG
+  </Card>
+
+  <Card title="Insights Agent" icon="chart-mixed" href="/agents/insights">
+    Surfaces risks and gaps
+  </Card>
+
+  <Card title="JIRA Agent" icon="ticket" href="/agents/jira">
+    Files JIRA tickets
+  </Card>
+
+  <Card title="Confluence Agent" icon="book" href="/agents/confluence">
+    Publishes Confluence pages
+  </Card>
+
+  <Card title="Tester Agent" icon="flask" href="/agents/tester">
+    Generates test scenarios
+  </Card>
+</CardGroup>

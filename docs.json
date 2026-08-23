@@ -48,6 +48,12 @@
           "architecture/caching",
           "architecture/security"
         ]
+      },
+      {
+        "group": "AI Agents",
+        "pages": [
+          "agents/overview"
+        ]
       }
     ]
   },

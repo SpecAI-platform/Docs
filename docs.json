@@ -55,7 +55,8 @@
           "agents/overview",
           "agents/srs",
           "agents/chatbot",
-          "agents/insights"
+          "agents/insights",
+          "agents/jira"
         ]
       }
     ]

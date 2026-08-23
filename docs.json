@@ -65,7 +65,8 @@
         "group": "Ingestion & Integrations",
         "pages": [
           "ingestion/overview",
-          "ingestion/browser-extension"
+          "ingestion/browser-extension",
+          "ingestion/file-upload"
         ]
       }
     ]

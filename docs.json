@@ -43,7 +43,8 @@
       {
         "group": "Architecture",
         "pages": [
-          "architecture/overview"
+          "architecture/overview",
+          "architecture/services"
         ]
       }
     ]

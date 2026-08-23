@@ -1,8 +1,3 @@
----
-title: "Services & Boundaries"
-description: "Detailed breakdown of each of SpecAI's 12 services: responsibilities, tech stack, and ports"
----
-
 SpecAI runs **12 independently deployable services**. Each owns a clear slice of responsibility and communicates with others either via the Gateway (for browser requests) or via direct internal HTTP calls (authenticated with `X-Internal-Key`).
 
 ## TypeScript / Express services

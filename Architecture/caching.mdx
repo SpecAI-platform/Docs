@@ -1,8 +1,3 @@
----
-title: "Caching Strategy"
-description: "How SpecAI uses Redis (Upstash) across services — what's cached, which strategy, and why"
----
-
 SpecAI uses a **shared managed Redis instance** (via Upstash) across all backend services. Redis is used for four distinct caching purposes, each with a different strategy chosen based on data characteristics.
 
 ## Upstash Redis setup

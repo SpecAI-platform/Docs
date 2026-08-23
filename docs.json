@@ -76,7 +76,8 @@
         "group": "CI/CD & Infrastructure",
         "pages": [
           "infrastructure/cicd",
-          "infrastructure/branch-protection"
+          "infrastructure/branch-protection",
+          "infrastructure/deployment"
         ]
       }
     ]

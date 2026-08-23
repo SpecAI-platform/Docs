@@ -57,8 +57,13 @@
           "agents/chatbot",
           "agents/insights",
           "agents/jira",
-          "agents/confluence"
+          "agents/confluence",
+          "agents/tester"
         ]
+      },
+      {
+        "group": "Ingestion & Integrations",
+        "pages": []
       }
     ]
   },

@@ -1,0 +1,84 @@
+---
+title: "Tester Agent"
+description: "Generates test cases and scenarios (conditions that must hold true) from your project's ingested structured data"
+---
+
+The **Tester Agent** (`services/agents/scenarios`) reads your project's knowledge base and generates **test cases and test scenarios** — structured conditions that must hold true for the system to be considered working correctly.
+
+## What it produces
+
+### Test scenarios
+
+High-level behavioral descriptions: given a context and an action, what should be true about the outcome.
+
+```text
+Scenario: User uploads a PDF document
+  Given: a user is a member of a project
+  When: they upload a PDF via the file upload ingestion source
+  Then: the document appears in the project's document list
+  And: an embedding job is queued within 5 seconds
+  And: the document status shows "Processing"
+```
+
+### Test cases
+
+More specific, parameterized conditions tied to requirements:
+
+```text
+Test case: TC-042
+Requirement: SRS-Must-003 (users must be able to search by meaning, not keyword)
+Input: Query "budget constraints"
+Expected: Returns chunks mentioning cost, pricing, or financial limits
+         even if those exact words don't appear in the query
+Priority: High
+```
+
+## How it works
+
+<Steps>
+  <Step title="Trigger">
+    User clicks "Generate Test Scenarios" or the agent is triggered after an SRS document is generated. Core dispatches a job to QStash.
+  </Step>
+  <Step title="Retrieve requirements context">
+    The agent retrieves structured requirements, acceptance criteria, and constraint content from the knowledge base — prioritizing content that contains explicit conditions ("must", "should", "when", "then", "if", "cannot").
+  </Step>
+  <Step title="Generate scenarios">
+    The LLM is prompted to think like a QA engineer: for each requirement, write the conditions that would confirm it works, and the edge cases that would expose it breaking.
+  </Step>
+  <Step title="Structure and store">
+    Output is structured into a standardized schema (scenario ID, requirement reference, steps, expected outcomes) and written to Postgres for display in the dashboard.
+  </Step>
+</Steps>
+
+## Input sources
+
+The agent performs best when the knowledge base contains:
+
+- Requirements documents (especially those with explicit "must/should" language)
+- Acceptance criteria from tickets or user stories
+- SRS output from the [SRS Document Agent](/agents/srs) (run that first for best results)
+- Edge cases or constraints mentioned in emails or meeting notes
+
+## Service details
+
+| Property | Value |
+| --- | --- |
+| Service path | `services/agents/scenarios` |
+| Default port | `5007` |
+| Env var | `PORT_AGENT_SCENARIOS=5007` |
+| Language | Python / FastAPI |
+| Health check | `GET /health` |
+
+## Running standalone
+
+```bash
+cd services/agents/scenarios
+uv sync
+uv run python main.py
+```
+
+## Current status
+
+<Info>
+  Scaffolded with health check and auth middleware. Test case generation logic and output schema are in active development. Running the SRS agent first and using its output as input context is the planned workflow.
+</Info>

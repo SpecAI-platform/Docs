@@ -63,7 +63,10 @@
       },
       {
         "group": "Ingestion & Integrations",
-        "pages": []
+        "pages": [
+          "ingestion/overview",
+          "ingestion/browser-extension"
+        ]
       }
     ]
   },

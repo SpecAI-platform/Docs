@@ -1,0 +1,65 @@
+---
+title: "Ingestion Overview"
+description: "The four ways content enters a SpecAI project knowledge base: browser clipper, file upload, email, and GitHub"
+---
+
+Content enters SpecAI through **four ingestion sources**. All four feed into the same pipeline — chunking, embedding, and vector storage — so once content is in the knowledge base, every AI agent can use it regardless of how it arrived.
+
+## The four sources
+
+<CardGroup cols={2}>
+  <Card title="Browser Extension" icon="browser" href="/ingestion/browser-extension">
+    Clip any webpage, article, Slack thread, or Google Doc directly from your browser. The extension sends clipped content to the Core service for ingestion.
+  </Card>
+
+  <Card title="File Upload" icon="file-arrow-up" href="/ingestion/file-upload">
+    Upload PDFs, Word docs, spreadsheets, and other files directly through the project dashboard. Files are stored in Supabase Storage and processed asynchronously.
+  </Card>
+
+  <Card title="Email" icon="envelope" href="/ingestion/email">
+    Forward emails to a project-specific inbound address. The Mail service parses the email body and attachments and routes them to the knowledge base.
+  </Card>
+
+  <Card title="GitHub" icon="github" href="/ingestion/github">
+    Connect a GitHub repository. Commits, pull requests, and issues are ingested automatically via webhooks, keeping the knowledge base current with code activity.
+  </Card>
+</CardGroup>
+
+## The shared ingestion pipeline
+
+Regardless of source, all content goes through the same processing pipeline after arriving at the Core service:
+
+```text
+Ingestion source
+  └─► Core service (/ingest endpoint)
+        ├── Validate + store metadata (Postgres)
+        ├── Store raw file if needed (Supabase Storage)
+        └─► Queue embedding job (QStash)
+              └─► Embedding worker
+                    ├── Chunk content into segments
+                    ├── Generate vector embeddings
+                    ├── Store in pgvector
+                    └── Update document status (Postgres + Redis)
+```
+
+### Chunking
+
+Long documents are split into overlapping chunks (e.g., 512 tokens with 64-token overlap) so that relevant sections can be retrieved independently via vector search.
+
+### Embedding
+
+Each chunk is passed to an embedding model to produce a vector representation. This is what makes semantic search possible — similar meaning = similar vector, regardless of the exact words used.
+
+### Storage
+
+- **Chunks \+ embeddings** → stored in the `vector` column (pgvector) in Postgres
+- **Document metadata** → stored in the relational tables (project ID, source type, file path, status)
+- **Raw files** → stored in Supabase Storage (for file upload source)
+
+## Real-time status
+
+The frontend subscribes to **Supabase Realtime** to show ingestion status changes live — from `pending` → `processing` → `complete` (or `failed`) — without polling.
+
+## Content boundaries
+
+All ingested content is **scoped to a project**. Content from one project is never mixed into another project's knowledge base. Access to a project's ingested content is controlled by RBAC — only project members can trigger agents or query the knowledge base.

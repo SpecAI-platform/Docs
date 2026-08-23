@@ -44,7 +44,8 @@
         "group": "Architecture",
         "pages": [
           "architecture/overview",
-          "architecture/services"
+          "architecture/services",
+          "architecture/caching"
         ]
       }
     ]

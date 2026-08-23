@@ -3,18 +3,92 @@ title: "Introduction"
 description: "Welcome to your project"
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+<img
+  className="block dark:hidden"
+  alt="SpecAI"
+  style={{ maxHeight: '80px', marginBottom: '24px' }}
+  src="/logo/light.svg"
+/>
+<img
+  className="hidden dark:block"
+  alt="SpecAI"
+  style={{ maxHeight: '80px', marginBottom: '24px' }}
+  src="/logo/dark.svg"
+/>
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+**SpecAI** is a multi-tenant SaaS platform that helps freelancers, engineers, and small teams capture scattered project context — emails, uploaded documents, browser-clipped content, and GitHub activity — into a **single searchable knowledge base per project**. AI agents then turn that knowledge base into useful outputs.
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## The problem SpecAI solves
+
+Small teams and solo builders lose project context constantly — decisions made in a Slack thread, a requirement mentioned in an email, a note taken during a call — none of it ends up anywhere searchable. Handoffs between teammates lose everything that wasn’t written down formally.
+
+SpecAI **ingests that scattered context automatically**, stores it centrally per project, and lets AI agents work directly against it.
+
+## How it works
+
+<Steps>
+  <Step title="Ingest">
+    Content enters the system via a **browser clipper extension**, **direct file upload**, **inbound email parsing**, or **GitHub activity** (commits, PRs, issues).
+  </Step>
+  <Step title="Process">
+    Ingested content is chunked, embedded, and stored in a vector database alongside relational project data — retrievable by meaning, not just keyword.
+  </Step>
+  <Step title="Knowledge base">
+    Each project gets its own knowledge base — a combination of structured data (Postgres) and vector embeddings (pgvector) as a single source of truth.
+  </Step>
+  <Step title="AI agents act">
+    Six specialized AI agents operate on the knowledge base to generate requirements documents, answer questions, surface risks, create JIRA tickets, publish Confluence pages, and generate test scenarios.
+  </Step>
+</Steps>
+
+## Six AI agents
+
+<CardGroup cols={2}>
+  <Card title="SRS Document Agent" icon="file-lines" href="/agents/srs">
+    Generates Software Requirements Specification documents using the MoSCoW method (Must/Should/Could/Won’t).
+  </Card>
+
+  <Card title="Chatbot Agent" icon="message-bot" href="/agents/chatbot">
+    Real-time RAG chatbot that answers questions about the project, citing the source documents it used.
+  </Card>
+
+  <Card title="Insights Agent" icon="chart-mixed" href="/agents/insights">
+    Analyzes the knowledge base to surface risks, gaps, and pivot-table-style project-state breakdowns.
+  </Card>
+
+  <Card title="JIRA Agent" icon="ticket" href="/agents/jira">
+    Decides when a ticket should be created and files it directly into the connected JIRA project.
+  </Card>
+
+  <Card title="Confluence Agent" icon="book" href="/agents/confluence">
+    Decides when documentation should be published and creates or updates Confluence pages.
+  </Card>
+
+  <Card title="Tester Agent" icon="flask" href="/agents/tester">
+    Generates test cases and scenarios (conditions that must hold true) from ingested structured data.
+  </Card>
+</CardGroup>
+
+## Target users
+
+Freelancers, independent engineers, and small teams who need **lightweight project-memory and documentation automation** without a heavy compliance or enterprise tooling footprint.
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get the full monorepo running locally in minutes.
+  </Card>
+
+  <Card title="Architecture Overview" icon="sitemap" href="/architecture/overview">
+    Understand the 12-service monorepo and how they connect.
+  </Card>
+
+  <Card title="Ingestion Sources" icon="arrow-down-to-bracket" href="/ingestion/overview">
+    Learn how content gets into the knowledge base.
+  </Card>
+
+  <Card title="CI/CD & Branches" icon="code-branch" href="/infrastructure/cicd">
+    Understand the build, test, and deploy pipeline.
+  </Card>
+</CardGroup>

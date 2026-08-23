@@ -3,45 +3,231 @@ title: "Quickstart"
 description: "Begin with a guide on the fastest path to a successful outcome"
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+This guide takes you from a fresh clone to all 12 services running and passing health checks.
 
 ## Prerequisites
 
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+Install these before cloning:
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
+  <Step title="Node.js 20+">
+    Node.js 22 is recommended (matches CI). Download from [nodejs.org](https://nodejs.org).
+  </Step>
+  <Step title="pnpm">
     ```bash
-    npm install your-package
+    npm install -g pnpm
+    # or via Corepack:
+    corepack enable pnpm
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
-
+  <Step title="Python 3.11+">
+    Any existing Python 3.11\+ install on your machine works.
+  </Step>
+  <Step title="uv (Python package manager)">
     ```bash
-    your-cli init
+    pip install uv
     ```
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
-
-    ```bash
-    your-cli start
-    ```
+  <Step title="Git">
+    Ensure `git` is available on your `PATH`.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+<Warning>
+  **Windows users:** If you hit "paging file too small" errors while installing Python dependencies or running builds, increase your Windows page file size (Advanced System Settings → Performance → Virtual Memory) and restart.
+</Warning>
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+## Clone the repository
+
+```bash
+git clone https://github.com/NirajSalunke/SpecAI.git
+cd SpecAI
+```
+
+The default branch is `production`. For local development, switch to `staging` (the integration branch) or create a feature branch off it:
+
+```bash
+git fetch origin
+git checkout staging
+git checkout -b feature/your-feature-name
+```
+
+## Set up environment variables
+
+Copy the example env file at the repo root:
+
+```bash
+cp .env.example .env
+```
+
+Then fill in real values (ask a teammate or check your password manager):
+
+```bash
+# Shared secret used between all internal services
+INTERNAL_API_KEY=ANY_KEY_TO_WORK
+
+# Ports
+PORT_WEB=3000
+PORT_CORE=5000
+PORT_AUTH=5001
+PORT_MAIL=5002
+PORT_JOBS=5003
+PORT_CONNECTORS=5004
+
+PORT_AGENT_BOT=5005
+PORT_AGENT_DOC=5006
+PORT_AGENT_SCENARIOS=5007
+PORT_AGENT_INSIGHTS=5008
+PORT_AGENT_JIRA=5009
+PORT_AGENT_CONFLUENCE=5010
+
+# Service URLs (used by apps/web to reach backend services)
+CORE_SERVICE_URL=http://localhost:5000
+AUTH_SERVICE_URL=http://localhost:5001
+MAIL_SERVICE_URL=http://localhost:5002
+JOBS_SERVICE_URL=http://localhost:5003
+CONNECTORS_SERVICE_URL=http://localhost:5004
+
+# Agent URLs (used by services to reach agents)
+AGENT_BOT_URL=http://localhost:5005
+AGENT_DOC_URL=http://localhost:5006
+AGENT_SCENARIOS_URL=http://localhost:5007
+AGENT_INSIGHTS_URL=http://localhost:5008
+AGENT_JIRA_URL=http://localhost:5009
+
+# Supabase
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<from Supabase project settings>
+SUPABASE_SERVICE_ROLE_KEY=<backend only — never expose to browser>
+SUPABASE_DB_URL=<Transaction Pooler connection string>
+
+# Upstash (Redis + QStash)
+UPSTASH_REDIS_REST_URL=<from Upstash dashboard>
+UPSTASH_REDIS_REST_TOKEN=<from Upstash dashboard>
+QSTASH_TOKEN=<from Upstash dashboard>
+QSTASH_CURRENT_SIGNING_KEY=<from Upstash dashboard>
+QSTASH_NEXT_SIGNING_KEY=<from Upstash dashboard>
+
+# AI
+GEMINI_API_KEY=<from Google AI Studio>
+```
+
+`apps/web` also needs its own `.env.local` (Next.js only auto-loads env files from its own folder):
+
+```bash
+cd apps/web
+cp .env.example .env.local
+# Fill in the same values relevant to web (service URLs, INTERNAL_API_KEY, Supabase anon key, etc.)
+cd ../..
+```
+
+## Install dependencies
+
+Run this from the **repo root only** — never inside an individual service folder:
+
+```bash
+pnpm install
+```
+
+Then install each Python agent's dependencies (each agent has its own virtual environment):
+
+```bash
+cd services/agents/bot && uv sync && cd -
+cd services/agents/doc && uv sync && cd -
+cd services/agents/scenarios && uv sync && cd -
+cd services/agents/insights && uv sync && cd -
+cd services/agents/jira && uv sync && cd -
+cd services/agents/confluence && uv sync && cd -
+```
+
+## Run everything
+
+From the repo root:
+
+```bash
+pnpm dev
+```
+
+This runs `turbo run dev`, which starts all 12 services concurrently in one terminal with labeled, color-coded output per service.
+
+<Info>
+  Running all 12 services at once is genuinely heavy (Next.js Turbopack \+ 5 Node/tsx watchers \+ 6 Python/uvicorn processes). If you hit memory issues, run only what you need:
+
+  ```bash
+  pnpm turbo run dev --filter=core --filter=auth --filter=web
+  ```
+</Info>
+
+To run a **single service** standalone:
+
+```bash
+# TypeScript services:
+cd services/core
+pnpm dev
+
+# Python agents:
+cd services/agents/bot
+uv run python main.py
+```
+
+## Verify everything is healthy
+
+With services running, open a second terminal and run:
+
+```bash
+pnpm health
+```
+
+This pings every service's `/health` endpoint and prints a pass/fail table. All 12 should show green.
+
+Or check individual health URLs directly:
+
+| Service | URL |
+| --- | --- |
+| Core | [http://localhost:5000/health](http://localhost:5000/health) |
+| Auth | [http://localhost:5001/health](http://localhost:5001/health) |
+| Mail | [http://localhost:5002/health](http://localhost:5002/health) |
+| Jobs | [http://localhost:5003/health](http://localhost:5003/health) |
+| Connectors | [http://localhost:5004/health](http://localhost:5004/health) |
+| Bot Agent | [http://localhost:5005/health](http://localhost:5005/health) |
+| Doc Agent | [http://localhost:5006/health](http://localhost:5006/health) |
+| Scenarios Agent | [http://localhost:5007/health](http://localhost:5007/health) |
+| Insights Agent | [http://localhost:5008/health](http://localhost:5008/health) |
+| JIRA Agent | [http://localhost:5009/health](http://localhost:5009/health) |
+| Confluence Agent | [http://localhost:5010/health](http://localhost:5010/health) |
+| Web | [http://localhost:3000](http://localhost:3000) (browser) |
+
+## Verify your build matches CI
+
+Before pushing, run the same build checks CI runs:
+
+```bash
+# Type-check and compile all TypeScript services
+pnpm turbo run build
+
+# Run Python agent tests
+cd services/agents/bot && uv run pytest && cd -
+# Repeat for each agent
+```
+
+## Branch workflow
+
+<Warning>
+  Both `staging` and `production` branches are protected. **No direct pushes are allowed**, even for repo admins. Every change goes through a pull request.
+</Warning>
+
+1. Branch off `staging`: `git checkout -b feature/your-feature-name`
+2. Make changes, commit, push: `git push -u origin feature/your-feature-name`
+3. Open a PR targeting **`staging`** (not `production` — GitHub defaults to `production` since it's the default branch, so double-check the base branch every time)
+4. Wait for CI to pass, then merge
+5. When ready to release: open a PR from `staging` into `production`
+
+See [Branch Workflow](/infrastructure/branches) for the full details.
+
+## Troubleshooting
+
+See the [Troubleshooting Guide](/contributing/troubleshooting) for common issues including `pnpm` not found, module errors, and Windows-specific problems.
+
+<Tip>
+  Need help? Email us at [specccsai@gmail.com](mailto:specccsai@gmail.com).
 </Tip>

@@ -1,0 +1,92 @@
+---
+title: "SRS Document Agent"
+description: "Generates Software Requirements Specification documents from your project knowledge base using the MoSCoW method"
+---
+
+The **SRS Document Agent** (`services/agents/doc`) reads your project's knowledge base and generates a structured **Software Requirements Specification (SRS)** document, with requirements automatically categorized using the **MoSCoW method**.
+
+## What it produces
+
+A complete SRS document containing:
+
+| Section | Description |
+| --- | --- |
+| Project overview | Purpose, scope, stakeholders derived from ingested context |
+| Must have | Non-negotiable requirements — the product cannot launch without these |
+| Should have | High-value requirements that are important but not launch-critical |
+| Could have | Desirable enhancements if time/budget allows |
+| Won't have | Explicitly out-of-scope items (prevents scope creep by naming them) |
+| Constraints | Technical, regulatory, or resource constraints surfaced from context |
+| Open questions | Ambiguities or gaps the agent identified that need human resolution |
+
+## MoSCoW method
+
+MoSCoW is a prioritization technique that forces requirements into four buckets:
+
+<CardGroup cols={2}>
+  <Card title="Must Have" icon="circle-exclamation" iconType="solid">
+    Core functionality without which the system fails its purpose. These are deal-breakers.
+  </Card>
+
+  <Card title="Should Have" icon="circle-check" iconType="solid">
+    Important requirements that add significant value. Include if possible, but the product ships without them.
+  </Card>
+
+  <Card title="Could Have" icon="circle-plus" iconType="regular">
+    Nice-to-have enhancements with lower impact. Only included if everything above is done.
+  </Card>
+
+  <Card title="Won't Have" icon="circle-xmark" iconType="regular">
+    Explicitly excluded from this iteration. Naming them prevents confusion about scope.
+  </Card>
+</CardGroup>
+
+The agent classifies each requirement by analyzing the emphasis, urgency, and dependency language present in the ingested context (e.g., emails, meeting notes, uploaded specs).
+
+## How it works
+
+<Steps>
+  <Step title="Trigger">
+    User clicks "Generate SRS" in the project dashboard. The Core service dispatches a job to QStash, which calls this agent.
+  </Step>
+  <Step title="Retrieve context">
+    The agent runs a set of structured vector queries against the project's knowledge base — retrieving chunks about goals, constraints, stakeholder needs, and technical requirements.
+  </Step>
+  <Step title="Classify and generate">
+    The retrieved chunks are passed to the LLM with a structured prompt that asks it to extract, deduplicate, and classify requirements into MoSCoW categories.
+  </Step>
+  <Step title="Write output">
+    The generated SRS is stored in Postgres, the job status is updated (write-through to Redis), and Supabase Realtime notifies the frontend.
+  </Step>
+</Steps>
+
+## Service details
+
+| Property | Value |
+| --- | --- |
+| Service path | `services/agents/doc` |
+| Default port | `5006` |
+| Env var | `PORT_AGENT_DOC=5006` |
+| Gateway URL env | `AGENT_DOC_URL=http://localhost:5006` |
+| Language | Python / FastAPI |
+| Health check | `GET /health` |
+
+## Running standalone
+
+```bash
+cd services/agents/doc
+uv sync          # install dependencies
+uv run python main.py
+```
+
+Or via turbo from the repo root:
+
+```bash
+pnpm turbo run dev --filter=doc
+```
+
+## Current status
+
+<Info>
+  Service is scaffolded and running with health-check endpoint and internal auth middleware. The SRS generation logic is in active development. Placeholder tests exist so CI passes — replace them with real coverage as logic is built.
+</Info>

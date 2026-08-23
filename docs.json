@@ -52,7 +52,9 @@
       {
         "group": "AI Agents",
         "pages": [
-          "agents/overview"
+          "agents/overview",
+          "agents/srs",
+          "agents/chatbot"
         ]
       }
     ]

@@ -1,0 +1,67 @@
+---
+title: "Chatbot Agent"
+description: "Real-time conversational agent that answers questions about your project using RAG over the knowledge base, with source citations"
+---
+
+The **Chatbot Agent** (`services/agents/bot`) is a **synchronous, real-time** conversational agent. Unlike the other five agents (which run as async background jobs), the chatbot responds immediately — the user sees an answer within seconds.
+
+## What makes it different
+
+| Property | Chatbot Agent | Other agents |
+| --- | --- | --- |
+| Execution model | **Synchronous** (real-time response) | Async (queued job) |
+| Trigger | User sends a chat message | User action or ingestion event |
+| Output | Conversational answer \+ source citations | Document / ticket / report |
+| UI pattern | Chat interface | Results panel / notification |
+
+## Retrieval-Augmented Generation (RAG)
+
+The chatbot never answers purely from the LLM's training data. Every answer is grounded in **your project's knowledge base**:
+
+<Steps>
+  <Step title="Embed the question">
+    The user's question is embedded into a vector using the same embedding model used during ingestion.
+  </Step>
+  <Step title="Retrieve relevant chunks">
+    A vector similarity search finds the top-k most relevant content chunks from the project's knowledge base (pgvector). Results are cached in Redis (short TTL) so repeated questions skip the search.
+  </Step>
+  <Step title="Augment the prompt">
+    Retrieved chunks are injected into the LLM prompt as context, along with metadata about which source document each chunk came from.
+  </Step>
+  <Step title="Generate and cite">
+    The LLM generates an answer grounded in the retrieved context. The response includes **source citations** — references back to the specific documents, emails, or clips the answer was drawn from.
+  </Step>
+</Steps>
+
+## Source citations
+
+Every chatbot response includes a list of the source documents used to construct the answer. This allows users to:
+
+- Verify the answer against the original source
+- Trace which ingested content is driving a specific conclusion
+- Identify gaps (e.g., "the agent cited nothing" — the knowledge base has no relevant context)
+
+## Service details
+
+| Property | Value |
+| --- | --- |
+| Service path | `services/agents/bot` |
+| Default port | `5005` |
+| Env var | `PORT_AGENT_BOT=5005` |
+| Gateway URL env | `AGENT_BOT_URL=http://localhost:5005` |
+| Language | Python / FastAPI |
+| Health check | `GET /health` |
+
+## Running standalone
+
+```bash
+cd services/agents/bot
+uv sync
+uv run python main.py
+```
+
+## Current status
+
+<Info>
+  Service is scaffolded and running. RAG pipeline and LLM integration are in active development. Chat interface in `apps/web` will connect to this agent via the Gateway once the core logic is built.
+</Info>

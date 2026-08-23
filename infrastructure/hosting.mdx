@@ -1,0 +1,95 @@
+---
+title: "Hosting & Infrastructure"
+description: "The managed services that power SpecAI in production — all on free tiers"
+---
+
+SpecAI is built under a **zero-cost budget constraint** — every piece of managed infrastructure runs on a free tier. This is a deliberate architectural constraint, not a gap to fix.
+
+## Infrastructure map
+
+| Service | Provider | What SpecAI uses it for |
+| --- | --- | --- |
+| **Database \+ Auth** | [Supabase](https://supabase.com) | Postgres \+ pgvector, Auth (JWT), Storage, Realtime |
+| **Caching \+ Queuing** | [Upstash](https://upstash.com) | Redis (caching), QStash (async jobs \+ scheduling) |
+| **Frontend hosting** | [Vercel](https://vercel.com) | `apps/web` (Next.js) |
+| **Backend hosting** | [Render](https://render.com) | All 11 backend services (5 TS \+ 6 Python agents) |
+| **Source control \+ CI/CD** | [GitHub](https://github.com) | Repo, GitHub Actions |
+
+## Supabase
+
+Supabase provides four critical capabilities in a single platform:
+
+1. **Postgres \+ pgvector** — the primary database, with vector similarity search built in via the pgvector extension
+2. **Supabase Auth** — user authentication, JWT issuance, session management, and password resets. SpecAI does not run a custom auth server.
+3. **Supabase Storage** — managed object storage for uploaded files (PDFs, docs, etc.)
+4. **Supabase Realtime** — WebSocket-based live database change subscriptions, used by the frontend to receive instant status updates without polling
+
+**Free tier limits to be aware of:**
+
+- 500 MB database space
+- 1 GB file storage
+- 50,000 monthly active users
+- 2 million Realtime messages/month
+
+## Upstash
+
+Upstash provides two services:
+
+### Redis
+
+A serverless Redis instance with a REST API. Used for JWKS caching, RBAC permission caching, RAG result caching, and job-status caching.
+
+- REST API means no persistent connection management — works well across Render and Vercel deployments
+- Free tier: 10,000 commands/day
+
+### QStash
+
+A serverless message queue and scheduler. Used for:
+
+- **Event-driven one-off jobs**: "document ingested, now embed it"
+- **Recurring cron jobs**: "sync JIRA every 15 minutes"
+
+QStash delivers HTTP callbacks to the target service (rather than requiring the service to maintain a queue connection), which fits the stateless Render deployment model.
+
+- Free tier: 500 messages/day
+
+## Vercel
+
+Hosts `apps/web` (Next.js). Chosen for:
+
+- Zero-config Next.js deployment
+- Edge network for fast global page loads
+- Free tier supports the project comfortably at current scale
+
+See [Deploying Services](/infrastructure/deployment) for the Vercel-specific CD configuration.
+
+## Render
+
+Hosts all 11 backend services (5 TypeScript/Express \+ 6 Python/FastAPI). Each service is a separate Render web service that:
+
+- Builds from the monorepo using a service-specific Dockerfile or build command
+- Receives deploys via a Render Deploy Hook URL (triggered by the CD workflow)
+- Runs on a shared free-tier instance (cold starts apply)
+
+**Free tier note:** Render free tier instances spin down after inactivity. First requests after a cold start will be slow (typically 10–30 seconds). This is acceptable for the current development phase but will need a paid tier for production traffic.
+
+## Environment variables by provider
+
+```bash
+# Supabase
+SUPABASE_URL=https://<ref>.supabase.co
+SUPABASE_ANON_KEY=<public>
+SUPABASE_SERVICE_ROLE_KEY=<secret — backend only>
+SUPABASE_DB_URL=<transaction pooler URL>
+
+# Upstash Redis
+UPSTASH_REDIS_REST_URL=https://<region>.upstash.io
+UPSTASH_REDIS_REST_TOKEN=<token>
+
+# Upstash QStash
+QSTASH_TOKEN=<token>
+QSTASH_CURRENT_SIGNING_KEY=<key>
+QSTASH_NEXT_SIGNING_KEY=<key>
+```
+
+For the complete env var reference including all service ports and URLs, see [Environment Variables](/contributing/env-vars).

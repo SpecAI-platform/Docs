@@ -1,0 +1,103 @@
+---
+title: "Architecture Overview"
+description: "High-level map of SpecAI's monorepo, 12 services, and API Gateway pattern"
+---
+
+SpecAI is built as a **single monorepo** containing 12 independently deployable services plus a browser extension, following an **API Gateway \+ microservices** pattern.
+
+## The core idea
+
+Each service owns a single slice of responsibility and communicates either through the **API Gateway** (for client-facing requests) or via **direct internal HTTP** (for service-to-service calls, authenticated with a shared secret header).
+
+## Monorepo structure
+
+```text
+SpecAI/
+├── apps/
+│   ├── web/               # Next.js frontend + API Gateway (BFF)
+│   └── extension/         # Browser clipper extension
+├── services/
+│   ├── core/              # Projects, documents, ingestion routing
+│   ├── auth/              # Identity, orgs, RBAC
+│   ├── mail/              # Inbound email parsing + outbound notifications
+│   ├── jobs/              # Scheduler / queue control plane
+│   └── connectors/        # JIRA, Confluence, GitHub adapters
+└── services/agents/
+    ├── bot/               # Chatbot Agent (Python/FastAPI)
+    ├── doc/               # SRS Document Agent (Python/FastAPI)
+    ├── scenarios/         # Tester Agent (Python/FastAPI)
+    ├── insights/          # Insights Agent (Python/FastAPI)
+    ├── jira/              # JIRA Agent (Python/FastAPI)
+    └── confluence/        # Confluence Agent (Python/FastAPI)
+```
+
+## Service map
+
+<CardGroup cols={2}>
+  <Card title="Gateway / BFF" icon="globe" href="/architecture/services">
+    `apps/web` — Next.js App Router. Single entry point for the browser. Verifies JWTs and proxies authenticated requests to internal services from server-side route handlers.
+  </Card>
+
+  <Card title="Core Domain" icon="database" href="/architecture/services">
+    Manages projects, document metadata, the ingestion API, and routes jobs to the correct AI agent service.
+  </Card>
+
+  <Card title="Identity / RBAC" icon="shield-halved" href="/architecture/security">
+    Layers org/project/role/permission data on top of Supabase's authenticated user identities.
+  </Card>
+
+  <Card title="AI Agents (×6)" icon="robot" href="/agents/overview">
+    Six independently deployable Python/FastAPI services that operate on a project's knowledge base.
+  </Card>
+
+  <Card title="Connectors" icon="plug" href="/ingestion/jira-confluence">
+    Adapters for JIRA, Confluence, and GitHub — handles both inbound webhooks and outbound actions.
+  </Card>
+
+  <Card title="Scheduler" icon="clock" href="/infrastructure/hosting">
+    Control-plane-only service managing recurring job schedules via a managed queue (QStash).
+  </Card>
+</CardGroup>
+
+## Tech stack split
+
+| Layer | Language | Framework | Reason |
+| --- | --- | --- | --- |
+| Frontend \+ Gateway | TypeScript | Next.js (App Router) | Full-stack React, Vercel deployment |
+| Backend services | TypeScript | Express | Uniform stack, excellent SDK support for JIRA/Confluence |
+| AI agents | Python | FastAPI | Python's AI/LLM ecosystem maturity |
+
+## Request flow
+
+```text
+Browser
+  └─► apps/web (Next.js server-side route handler)
+        ├── Verify JWT (Supabase JWKS, cached in Redis)
+        ├── Check RBAC permissions (cached in Redis)
+        └─► Internal service (Core / Auth / Agents ...)
+              └── Internal secret header (X-Internal-Key)
+```
+
+<Tip>
+  All backend services are designed to run as **internally-reachable-only** deployments in production. The internal secret adds defense-in-depth but is not the only protection layer — see [Security Model](/architecture/security).
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Services & Boundaries" icon="sitemap" href="/architecture/services">
+    Detailed breakdown of each service's responsibilities and ports.
+  </Card>
+
+  <Card title="Database & Storage" icon="cylinder" href="/architecture/database">
+    Postgres \+ pgvector, Supabase Storage, row-level security.
+  </Card>
+
+  <Card title="Caching Strategy" icon="bolt" href="/architecture/caching">
+    Redis usage across services — what's cached and why.
+  </Card>
+
+  <Card title="Security Model" icon="lock" href="/architecture/security">
+    Auth, RBAC, internal secrets, and RLS.
+  </Card>
+</CardGroup>

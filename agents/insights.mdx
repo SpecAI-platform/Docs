@@ -1,0 +1,74 @@
+---
+title: "Insights Agent"
+description: "Analyzes your project knowledge base to surface risks, gaps, and pivot-table-style project state breakdowns"
+---
+
+The **Insights Agent** (`services/agents/insights`) doesn't answer a specific question — it proactively analyzes the entire project knowledge base and surfaces things you didn't know to ask about.
+
+## What it produces
+
+### Risk analysis
+
+Identifies potential problems before they happen by looking for:
+
+- Requirements that are vague, contradictory, or under-specified
+- Commitments made in emails that aren't reflected in formal specs
+- Dependencies on external parties or systems with no contingency
+- Scope that has grown beyond what was originally agreed
+
+### Gap analysis
+
+Finds what's **missing** from the knowledge base:
+
+- Areas where decisions were referenced but never documented
+- Requirements categories present in some documents but absent in others
+- Open questions from meetings that were never answered or captured
+
+### Project state breakdowns
+
+Pivot-table-style summaries that give a structured view of project health:
+
+- Requirements by status (defined / unclear / missing)
+- Action items by owner and deadline
+- Content coverage by topic area (how much ingested context exists per domain)
+
+## How it works
+
+<Steps>
+  <Step title="Trigger">
+    User clicks "Run Insights" or the scheduler triggers a periodic analysis. Core dispatches a job to QStash.
+  </Step>
+  <Step title="Broad retrieval">
+    Unlike targeted agents, Insights runs **multiple broad vector queries** across different topic areas to get a comprehensive view of the knowledge base — not just the most similar chunk to one question.
+  </Step>
+  <Step title="Analyze and categorize">
+    The LLM is prompted to act as a project analyst: identify risks, flag gaps, and structure what it finds into the output categories.
+  </Step>
+  <Step title="Store results">
+    Insights output is written to Postgres (structured JSON), surfaced in the dashboard as an expandable panel, and updated each time the agent runs.
+  </Step>
+</Steps>
+
+## Service details
+
+| Property | Value |
+| --- | --- |
+| Service path | `services/agents/insights` |
+| Default port | `5008` |
+| Env var | `PORT_AGENT_INSIGHTS=5008` |
+| Language | Python / FastAPI |
+| Health check | `GET /health` |
+
+## Running standalone
+
+```bash
+cd services/agents/insights
+uv sync
+uv run python main.py
+```
+
+## Current status
+
+<Info>
+  Scaffolded with health check and auth middleware. Analysis logic and output schema are in active design. This agent's output format (structured JSON for the pivot breakdowns) needs to be finalized before implementation.
+</Info>

@@ -1,0 +1,113 @@
+---
+title: "CI/CD Overview"
+description: "How SpecAI's GitHub Actions pipelines build, test, and deploy 12 services with path-filtered efficiency"
+---
+
+SpecAI uses **GitHub Actions** for both continuous integration (CI) and continuous delivery (CD). The pipelines are designed for a monorepo with 12 services — only the services affected by a given change get rebuilt and redeployed.
+
+## Two workflows
+
+| Workflow | File | Trigger | What it does |
+| --- | --- | --- | --- |
+| **CI** | `ci.yml` | PRs into `staging` or `production` | Build \+ test all services |
+| **CD** | `cd.yml` | Push to `production` | Deploy changed services |
+
+## CI workflow (`ci.yml`)
+
+Runs on every pull request targeting `staging` or `production`.
+
+### Job 1: `node-services` (matrix)
+
+Runs in parallel for each TypeScript service:
+
+```text
+Web App │ Core Service │ Auth Service │
+Mail Service │ Jobs Service │ Connectors Service
+```
+
+Steps for each:
+
+```yaml
+- checkout
+- pnpm setup + node setup
+- pnpm install --frozen-lockfile
+- turbo run build --filter=<service>   # type-check + compile
+- turbo run test --filter=<service>    # unit tests
+```
+
+### Job 2: `agents` (matrix)
+
+Runs in parallel for each Python agent:
+
+```text
+Bot Agent │ Doc Agent │ Scenarios Agent │
+Insights Agent │ Jira Agent │ Confluence Agent
+```
+
+Steps for each:
+
+```yaml
+- checkout
+- install uv
+- uv sync --all-extras
+- uv run pytest
+```
+
+<Warning>
+  Python agents must have at least one test file or `pytest` exits with code 5 ("no tests collected") and permanently fails the required status check. All six agents currently have placeholder test files for this reason — replace them with real tests as agent logic is built.
+</Warning>
+
+## CD workflow (`cd.yml`)
+
+Runs only on push to `production`.
+
+### Path filtering (`dorny/paths-filter`)
+
+The `detect-changes` job uses `dorny/paths-filter` to check which service paths actually changed in the push. Only services with changes get a deploy job triggered.
+
+### `deploy-web` (Vercel)
+
+Runs if `apps/web` changed:
+
+```yaml
+- checkout
+- pnpm + node setup
+- pnpm install (root)
+- vercel pull          # must run from REPO ROOT with VERCEL_ORG_ID + VERCEL_PROJECT_ID set
+- vercel build --prod  # same — repo root
+- vercel deploy --prebuilt --prod
+```
+
+<Warning>
+  All three `vercel` commands must run from the **repo root**, not `apps/web`, with `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` set on every step. Omitting them on `vercel pull` causes Vercel to auto-scan the whole monorepo instead of recognizing the linked project.
+</Warning>
+
+### `deploy-core/auth/mail/jobs/connectors` (Render)
+
+Each service has its own deploy job that fires a **Render Deploy Hook** via `curl`:
+
+```yaml
+- name: Deploy Core to Render
+  run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_CORE }}
+```
+
+Render builds the Docker image itself from the pushed commit — no build step in the CD workflow.
+
+### Agents — CD not yet wired
+
+<Info>
+  The 6 Python agents have CI coverage but **no deploy jobs in `cd.yml` yet**. They are built and deployed manually via Render's dashboard. The next CD work item is to add a matrix `deploy-agents` job using one `RENDER_DEPLOY_HOOK_<AGENT>` secret per agent.
+</Info>
+
+## Status checks required for merge
+
+Both `staging` and `production` require all 12 status checks to pass:
+
+```text
+Web App, Core Service, Auth Service, Mail Service,
+Jobs Service, Connectors Service,
+Bot Agent, Doc Agent, Scenarios Agent,
+Insights Agent, Jira Agent, Confluence Agent
+```
+
+See [Branch Protection](/infrastructure/branch-protection) for the full ruleset configuration.

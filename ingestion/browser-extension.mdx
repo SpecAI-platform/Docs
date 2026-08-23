@@ -1,0 +1,59 @@
+---
+title: "Browser Extension"
+description: "Clip any webpage, article, or web-based content directly into a SpecAI project knowledge base"
+---
+
+The **browser extension** (`apps/extension`) is SpecAI's most lightweight ingestion source. It lets you capture web content — a requirements doc on Notion, a decision thread in a GitHub issue, an article you're referencing — without leaving the browser.
+
+## What you can clip
+
+- Web pages and articles
+- Online documents (Google Docs, Notion pages, Confluence pages viewed in browser)
+- GitHub issues and pull request descriptions
+- Any text-heavy web content
+
+## How it works
+
+<Steps>
+  <Step title="Select content">
+    Highlight text on any webpage, or clip the entire page.
+  </Step>
+  <Step title="Choose project">
+    The extension popup lets you select which SpecAI project this clip belongs to.
+  </Step>
+  <Step title="Send to Core">
+    The extension sends the clipped content (text \+ source URL \+ metadata) to the Core service's ingestion endpoint, authenticated with the user's JWT.
+  </Step>
+  <Step title="Process">
+    Core routes the content through the standard ingestion pipeline — chunked, embedded, stored in pgvector. Status appears in the project dashboard.
+  </Step>
+</Steps>
+
+## Authentication
+
+The extension uses the user's active SpecAI session (JWT stored in extension storage after login) to authenticate ingestion requests. The user must be logged in to the SpecAI web app in the same browser profile.
+
+## Monorepo location
+
+```text
+apps/extension/
+```
+
+The extension is scaffolded as a separate app in the monorepo but is **not yet built out**. It is excluded from the CI matrix until scaffolding is complete:
+
+```yaml
+# ci.yml — extension is currently commented out
+# - name: Extension
+#   filter: extension
+```
+
+## Current status
+
+<Warning>
+  The browser extension is **scaffolded but not yet implemented**. It is one of the next pieces of work after the core services are wired up. Until it's built, use [File Upload](/ingestion/file-upload) or [Email Ingestion](/ingestion/email) as alternatives.
+</Warning>
+
+## Planned browser support
+
+- Chrome / Chromium-based browsers (primary target)
+- Firefox (secondary target, uses the same WebExtension API)

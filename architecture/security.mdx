@@ -1,0 +1,85 @@
+---
+title: "Security Model"
+description: "Authentication, RBAC, internal service secrets, and row-level security in SpecAI"
+---
+
+SpecAI's security is built in **layers** — no single mechanism is the sole line of defense.
+
+## Authentication: Supabase Auth
+
+SpecAI does **not** run its own auth server. Authentication (signup, login, session management, password resets) is fully delegated to **Supabase Auth**.
+
+Supabase Auth issues **JWTs** (JSON Web Tokens) when users sign in. These tokens are what all backend services use to identify who the caller is.
+
+```text
+User signs in → Supabase Auth issues JWT
+User makes request → Browser sends JWT in Authorization header
+Gateway receives request → Verifies JWT signature (JWKS, cached in Redis)
+```
+
+<Warning>
+  **The identity service does not handle credentials.** It only maps Supabase's authenticated user IDs to org/project/role data. Credentials and token issuance remain entirely within Supabase.
+</Warning>
+
+## RBAC: Identity / Auth Service
+
+The **auth service** (`services/auth`) layers organization, project, and role-based permission management on top of Supabase user identities.
+
+### Permission model
+
+- **Organizations** contain **projects**
+- **Members** belong to organizations and are assigned **roles** per project
+- Roles control what actions a member can perform within a project
+
+### How RBAC is enforced
+
+1. Gateway receives a verified JWT (user ID confirmed)
+2. Gateway calls auth service to check: does this user have permission to perform this action on this resource?
+3. Auth service returns allow/deny (result cached in Redis with cache-aside)
+4. Gateway either forwards the request or rejects with `403`
+
+## Internal service-to-service auth
+
+When one service calls another internally (e.g., Core calling the JIRA agent to trigger ticket creation), these calls are authenticated with a **shared internal secret header**.
+
+```bash
+# Set once in .env, used by all services
+INTERNAL_API_KEY=<any strong random string>
+```
+
+Every service has middleware that checks for this header on all internal endpoints. Requests missing the header are rejected.
+
+<Info>
+  This secret is defense-in-depth. The primary protection for internal services is that they are deployed as **internally-reachable-only** in production — they should not be publicly accessible. The internal secret provides an additional check if the network boundary is ever misconfigured.
+</Info>
+
+## Row-level security (RLS)
+
+At the database layer, **RLS policies** ensure that queries through Supabase's public API surface can only access rows belonging to the authenticated user's projects.
+
+This is a **safety net** against direct database API access, separate from the application-level authorization the backend services perform. Backend services use the `SUPABASE_SERVICE_ROLE_KEY` (which bypasses RLS) to perform admin-level operations, after performing their own authorization checks at the application layer.
+
+## Security layer summary
+
+| Layer | Mechanism | Responsibility |
+| --- | --- | --- |
+| Authentication | Supabase Auth (JWT issuance) | Verifying who the user is |
+| JWT verification | JWKS check in Gateway (Redis-cached) | Confirming the token is valid and unmodified |
+| Authorization | RBAC in auth service (Redis-cached) | Checking what the user is allowed to do |
+| Internal calls | Shared `INTERNAL_API_KEY` header | Authenticating service-to-service requests |
+| Database | Row-level security (RLS) | Defense-in-depth against direct DB API access |
+
+## Key secrets reference
+
+```bash
+# JWT verification (never changes frequently — Supabase manages rotation)
+SUPABASE_ANON_KEY=<public, safe for browser>
+SUPABASE_SERVICE_ROLE_KEY=<secret — backend only, bypasses RLS>
+
+# Internal service auth (rotate if compromised)
+INTERNAL_API_KEY=<shared secret across all services>
+```
+
+<Caution>
+  `SUPABASE_SERVICE_ROLE_KEY` bypasses all RLS policies. It must **never** be sent to the browser, committed to git, or logged. Only backend services should ever hold this value.
+</Caution>

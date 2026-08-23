@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "SpecAI Documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0F52BA",
+    "light": "#A6C5D7",
+    "dark": "#000926"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -31,7 +31,66 @@
           "icon": "newspaper"
         }
       ]
-    }
+    },
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Architecture",
+        "pages": [
+          "architecture/overview",
+          "architecture/services",
+          "architecture/caching",
+          "architecture/security"
+        ]
+      },
+      {
+        "group": "AI Agents",
+        "pages": [
+          "agents/overview",
+          "agents/srs",
+          "agents/chatbot",
+          "agents/insights",
+          "agents/jira",
+          "agents/confluence",
+          "agents/tester"
+        ]
+      },
+      {
+        "group": "Ingestion & Integrations",
+        "pages": [
+          "ingestion/overview",
+          "ingestion/browser-extension",
+          "ingestion/file-upload",
+          "ingestion/email",
+          "ingestion/github",
+          "ingestion/jira-confluence"
+        ]
+      },
+      {
+        "group": "CI/CD & Infrastructure",
+        "pages": [
+          "infrastructure/cicd",
+          "infrastructure/branch-protection",
+          "infrastructure/deployment",
+          "infrastructure/hosting"
+        ]
+      },
+      {
+        "group": "Contributing",
+        "pages": [
+          "contributing/guide",
+          "contributing/troubleshooting",
+          "contributing/env-vars",
+          "contributing/roadmap"
+        ]
+      }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -41,13 +100,13 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:specccsai@gmail.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "GitHub",
+      "href": "https://github.com/NirajSalunke/SpecAI"
     }
   },
   "contextual": {
@@ -55,18 +114,12 @@
       "copy",
       "view",
       "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
+      "claude"
     ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/NirajSalunke/SpecAI"
     }
   }
 }

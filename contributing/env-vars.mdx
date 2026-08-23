@@ -1,0 +1,136 @@
+---
+title: "Environment Variables"
+description: "Complete reference for all SpecAI environment variables — what they are, which services use them, and where to find the values"
+---
+
+This is the complete reference for every environment variable in the SpecAI monorepo. Two `.env` files are needed: one at the **repo root** and one in **`apps/web`**.
+
+## Repo root `.env`
+
+Copy from `.env.example` at the repo root:
+
+```bash
+cp .env.example .env
+```
+
+### Internal auth
+
+| Variable | Example | Used by | Notes |
+| --- | --- | --- | --- |
+| `INTERNAL_API_KEY` | `any-strong-random-string` | All services | Shared secret for service-to-service calls. Set the same value in all services. |
+
+### Ports
+
+| Variable | Default | Service |
+| --- | --- | --- |
+| `PORT_WEB` | `3000` | apps/web |
+| `PORT_CORE` | `5000` | services/core |
+| `PORT_AUTH` | `5001` | services/auth |
+| `PORT_MAIL` | `5002` | services/mail |
+| `PORT_JOBS` | `5003` | services/jobs |
+| `PORT_CONNECTORS` | `5004` | services/connectors |
+| `PORT_AGENT_BOT` | `5005` | services/agents/bot |
+| `PORT_AGENT_DOC` | `5006` | services/agents/doc |
+| `PORT_AGENT_SCENARIOS` | `5007` | services/agents/scenarios |
+| `PORT_AGENT_INSIGHTS` | `5008` | services/agents/insights |
+| `PORT_AGENT_JIRA` | `5009` | services/agents/jira |
+| `PORT_AGENT_CONFLUENCE` | `5010` | services/agents/confluence |
+
+### Service URLs (inter-service communication)
+
+| Variable | Default (local) | Used by |
+| --- | --- | --- |
+| `CORE_SERVICE_URL` | `http://localhost:5000` | apps/web, other services routing through core |
+| `AUTH_SERVICE_URL` | `http://localhost:5001` | apps/web (RBAC checks) |
+| `MAIL_SERVICE_URL` | `http://localhost:5002` | core (notification requests) |
+| `JOBS_SERVICE_URL` | `http://localhost:5003` | core (schedule job requests) |
+| `CONNECTORS_SERVICE_URL` | `http://localhost:5004` | agents/jira, agents/confluence |
+| `AGENT_BOT_URL` | `http://localhost:5005` | core (chatbot routing) |
+| `AGENT_DOC_URL` | `http://localhost:5006` | core (SRS generation routing) |
+| `AGENT_SCENARIOS_URL` | `http://localhost:5007` | core (tester agent routing) |
+| `AGENT_INSIGHTS_URL` | `http://localhost:5008` | core (insights routing) |
+| `AGENT_JIRA_URL` | `http://localhost:5009` | core (JIRA agent routing) |
+
+### Supabase
+
+| Variable | Where to find | Used by | Notes |
+| --- | --- | --- | --- |
+| `SUPABASE_URL` | Supabase project settings → API | All services | Public project URL |
+| `SUPABASE_ANON_KEY` | Supabase project settings → API | apps/web, all services | Public — safe for browser |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase project settings → API | Backend services only | **Secret** — bypasses RLS, never expose to browser |
+| `SUPABASE_DB_URL` | Supabase → Connect → Transaction Pooler | services that run migrations | Direct Postgres connection string |
+
+### Upstash (Redis)
+
+| Variable | Where to find | Used by |
+| --- | --- | --- |
+| `UPSTASH_REDIS_REST_URL` | Upstash dashboard → Redis instance | All services (caching) |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash dashboard → Redis instance | All services (caching) |
+
+### Upstash (QStash)
+
+| Variable | Where to find | Used by |
+| --- | --- | --- |
+| `QSTASH_TOKEN` | Upstash dashboard → QStash | services/jobs (schedule registration) |
+| `QSTASH_CURRENT_SIGNING_KEY` | Upstash dashboard → QStash | Worker endpoints (verify callbacks) |
+| `QSTASH_NEXT_SIGNING_KEY` | Upstash dashboard → QStash | Worker endpoints (verify callbacks during key rotation) |
+
+### AI
+
+| Variable | Where to find | Used by |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com) | All Python agents (cloud LLM mode) |
+
+---
+
+## `apps/web/.env.local`
+
+Next.js only loads env files from its own directory, so `apps/web` needs its own file:
+
+```bash
+cd apps/web
+cp .env.example .env.local
+```
+
+Copy the relevant values from the root `.env`:
+
+| Variable | Value |
+| --- | --- |
+| `INTERNAL_API_KEY` | Same as root `.env` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Same as `SUPABASE_URL` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same as `SUPABASE_ANON_KEY` |
+| `CORE_SERVICE_URL` | Same as root |
+| `AUTH_SERVICE_URL` | Same as root |
+| (other service URLs as needed) | Same as root |
+
+<Warning>
+  Never put `SUPABASE_SERVICE_ROLE_KEY` in `apps/web/.env.local` or any client-side env var. It must only exist in backend service environments.
+</Warning>
+
+---
+
+## GitHub Actions secrets
+
+Required secrets in the GitHub repository for CI/CD:
+
+| Secret | Used for |
+| --- | --- |
+| `VERCEL_TOKEN` | Vercel CLI authentication |
+| `VERCEL_ORG_ID` | Identifies the Vercel org |
+| `VERCEL_PROJECT_ID` | Identifies the Vercel project |
+| `RENDER_DEPLOY_HOOK_CORE` | Deploy hook URL for Core service on Render |
+| `RENDER_DEPLOY_HOOK_AUTH` | Deploy hook URL for Auth service |
+| `RENDER_DEPLOY_HOOK_MAIL` | Deploy hook URL for Mail service |
+| `RENDER_DEPLOY_HOOK_JOBS` | Deploy hook URL for Jobs service |
+| `RENDER_DEPLOY_HOOK_CONNECTORS` | Deploy hook URL for Connectors service |
+
+Agent deploy hooks (not yet in CD, but will be needed):
+
+```text
+RENDER_DEPLOY_HOOK_BOT
+RENDER_DEPLOY_HOOK_DOC
+RENDER_DEPLOY_HOOK_SCENARIOS
+RENDER_DEPLOY_HOOK_INSIGHTS
+RENDER_DEPLOY_HOOK_JIRA
+RENDER_DEPLOY_HOOK_CONFLUENCE
+```

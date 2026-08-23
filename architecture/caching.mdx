@@ -1,0 +1,82 @@
+---
+title: "Caching Strategy"
+description: "How SpecAI uses Redis (Upstash) across services — what's cached, which strategy, and why"
+---
+
+SpecAI uses a **shared managed Redis instance** (via Upstash) across all backend services. Redis is used for four distinct caching purposes, each with a different strategy chosen based on data characteristics.
+
+## Upstash Redis setup
+
+Upstash provides a serverless Redis instance with a REST API — no persistent connection management, which works well across independently deployed services on Render and Vercel.
+
+```bash
+UPSTASH_REDIS_REST_URL=https://<your-instance>.upstash.io
+UPSTASH_REDIS_REST_TOKEN=<token>
+```
+
+## What's cached and how
+
+### 1. JWKS (JSON Web Key Set)
+
+**Strategy:** Cache-aside with TTL
+
+The Gateway verifies JWTs on every request by checking the token's signature against Supabase's public key set (JWKS). Fetching the JWKS from Supabase on every request is unnecessary and slow.
+
+- On first request (cache miss): fetch JWKS from Supabase, store in Redis with a TTL
+- On subsequent requests (cache hit): verify directly against the cached JWKS
+- On token verification failure (possible key rotation): invalidate and re-fetch
+
+**TTL:** ~1 hour (Supabase rotates keys rarely; a short TTL still gives good hit rate)
+
+---
+
+### 2. RBAC permissions
+
+**Strategy:** Cache-aside
+
+The Gateway checks whether the authenticated user has permission to perform the requested action (e.g., can they access this project?) by calling the auth service. These permission checks happen on every proxied request and are expensive if uncached.
+
+- Key pattern: `rbac:{userId}:{projectId}:{action}`
+- Cache miss: call auth service, store result
+- Cache hit: use stored result directly
+- Invalidation: on role changes (explicit delete by the auth service)
+
+---
+
+### 3. RAG retrieval results
+
+**Strategy:** Cache-aside with TTL
+
+RAG (Retrieval-Augmented Generation) involves a vector similarity search over the project's knowledge base, which is relatively expensive. If the same question is asked repeatedly against an unchanged knowledge base, the retrieval result will be identical.
+
+- Key pattern: `rag:{projectId}:{queryHash}`
+- Cache miss: run vector search, store top-k chunks in Redis
+- Cache hit: skip vector search, use cached chunks for LLM call
+- TTL: short (minutes) — knowledge bases update frequently as new content is ingested
+
+---
+
+### 4. Job status
+
+**Strategy:** Write-through
+
+Agent job state (pending / running / complete / failed) needs to be readable by the frontend in real-time. Supabase Realtime handles live updates, but Redis caches the latest status so the Gateway can serve status checks immediately without hitting Postgres.
+
+- Written to Redis **at the same time** as the Postgres update (write-through)
+- Read from Redis on status-check requests (cache always has current state)
+- TTL: longer (hours) — jobs don't change state frequently once complete
+
+---
+
+## Strategy summary
+
+| Data | Strategy | Why |
+| --- | --- | --- |
+| JWKS | Cache-aside \+ TTL | Read-heavy, rarely changes, acceptable stale window |
+| RBAC permissions | Cache-aside \+ explicit invalidation | Changes on role updates, must be invalidated actively |
+| RAG retrieval results | Cache-aside \+ short TTL | Saves expensive vector search, but KB changes frequently |
+| Job status | Write-through | Needs to always reflect current state, high read frequency |
+
+<Tip>
+  The shared Redis instance means all services can read JWKS and RBAC data. Only the service that owns a piece of data should **write** to it — e.g., only the auth service invalidates RBAC cache entries.
+</Tip>

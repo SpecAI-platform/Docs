@@ -1,0 +1,133 @@
+---
+title: "Services & Boundaries"
+description: "Detailed breakdown of each of SpecAI's 12 services: responsibilities, tech stack, and ports"
+---
+
+SpecAI runs **12 independently deployable services**. Each owns a clear slice of responsibility and communicates with others either via the Gateway (for browser requests) or via direct internal HTTP calls (authenticated with `X-Internal-Key`).
+
+## TypeScript / Express services
+
+### `apps/web` — Gateway / BFF
+
+The **single public entry point** for all browser traffic.
+
+- Built with **Next.js App Router** (TypeScript, Tailwind CSS)
+- Server-side route handlers verify JWTs from Supabase Auth against a **cached JWKS** (no round-trip on every request)
+- Checks RBAC permissions from the auth service (cached in Redis)
+- Proxies authenticated requests to the correct internal service
+- Hosts the entire React frontend (dashboard, project views, agent result UIs)
+- Deploys to **Vercel**
+
+**Default port:** `3000`
+
+---
+
+### `services/core` — Core Domain
+
+The **central coordinator** for project data and ingestion.
+
+- Manages **projects** and **document metadata** (CRUD, ownership)
+- Owns the **ingestion API** — receives content from all four ingestion sources and routes embedding jobs to the queue
+- Routes **agent trigger requests** to the correct AI agent service
+- Reads/writes to Postgres (structured data) and coordinates vector storage via pgvector
+
+**Default port:** `5000`
+
+---
+
+### `services/auth` — Identity / RBAC
+
+Layers **organization and role management** on top of Supabase Auth.
+
+- Does **not** handle credentials, sessions, or token issuance (that's Supabase)
+- Consumes Supabase's authenticated user ID and maps it to orgs, projects, and roles
+- Exposes permission-check endpoints called by the Gateway before forwarding requests
+- RBAC permission results are **cached in Redis** (cache-aside strategy)
+
+**Default port:** `5001`
+
+---
+
+### `services/mail` — Mailing / Notification
+
+Handles both **inbound email parsing** and **outbound notifications**.
+
+- Parses inbound project emails as one of the four ingestion sources
+- Sends outbound notifications (job completed, agent output ready, etc.)
+- Routes parsed email content to Core for ingestion processing
+
+**Default port:** `5002`
+
+---
+
+### `services/jobs` — Scheduler
+
+**Control-plane-only** — it does not execute jobs, only schedules them.
+
+- Manages recurring job schedules (e.g., "sync JIRA every 15 minutes") via **QStash** (Upstash)
+- Registers, updates, and cancels schedules on behalf of other services
+- Event-driven one-off jobs ("document ingested, now embed it") are also dispatched through QStash
+
+**Default port:** `5003`
+
+---
+
+### `services/connectors` — Connectors
+
+**Adapters** for third-party integrations.
+
+- Handles inbound webhooks from **GitHub** (commits, PRs, issues) and routes content to Core for ingestion
+- Executes outbound actions on behalf of the JIRA and Confluence agents (creates tickets, publishes pages)
+- Manages OAuth/API-key credentials for connected third-party accounts
+
+**Default port:** `5004`
+
+---
+
+## Python / FastAPI agents
+
+All six agents are independently deployable **Python/FastAPI** services. They share a common internal library (`agent-common`) for:
+
+- LLM provider abstraction (local model ↔ cloud API switching)
+- RAG retrieval (vector search over the project's knowledge base)
+- Caching helpers (RAG result caching in Redis)
+- Shared data schemas (Pydantic models)
+
+<Info>
+  Why Python? Python's AI/LLM tooling ecosystem (LangChain, LlamaIndex, HuggingFace, etc.) is significantly more mature than its Node.js equivalents. All six agents use Python/FastAPI for this reason, while all other backend services use TypeScript/Express for better third-party SDK support (JIRA, Confluence).
+</Info>
+
+| Agent | Port | Description |
+| --- | --- | --- |
+| `bot` (Chatbot) | `5005` | Real-time RAG chatbot, answers questions with source citations |
+| `doc` (SRS Agent) | `5006` | Generates SRS documents using the MoSCoW method |
+| `scenarios` (Tester) | `5007` | Generates test cases and scenarios from structured data |
+| `insights` | `5008` | Surfaces risks, gaps, and project-state breakdowns |
+| `jira` | `5009` | Decides when to create JIRA tickets and files them |
+| `confluence` | `5010` | Decides when to publish and creates/updates Confluence pages |
+
+See [AI Agents Overview](/agents/overview) for a deeper look at each agent.
+
+## Browser extension
+
+`apps/extension` — the **browser clipper**. One of the four ingestion sources. Currently scaffolded but not yet built out — see [Browser Extension](/ingestion/browser-extension).
+
+## Port reference
+
+```bash
+# TypeScript services
+PORT_WEB=3000
+PORT_CORE=5000
+PORT_AUTH=5001
+PORT_MAIL=5002
+PORT_JOBS=5003
+PORT_CONNECTORS=5004
+
+# Python agents
+PORT_AGENT_BOT=5005
+PORT_AGENT_DOC=5006
+PORT_AGENT_SCENARIOS=5007
+PORT_AGENT_INSIGHTS=5008
+PORT_AGENT_JIRA=5009
+PORT_AGENT_CONFLUENCE=5010
+```

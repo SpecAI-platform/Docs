@@ -1,0 +1,64 @@
+---
+title: "Email Ingestion"
+description: "Forward emails to a project-specific address to automatically ingest email content and attachments into the knowledge base"
+---
+
+**Email ingestion** captures one of the most common places project context gets lost: inboxes. Forward any relevant email to your project's inbound address and the content becomes searchable in the knowledge base.
+
+## How it works
+
+<Steps>
+  <Step title="Get your project email address">
+    Each project gets a unique inbound email address (e.g., `project-abc123@ingest.specai.app`). Find it in the project settings.
+  </Step>
+  <Step title="Forward the email">
+    Forward any email to this address — a client requirement thread, a decision made via email, a vendor quote, a meeting summary sent by a teammate.
+  </Step>
+  <Step title="Mail service parses the email">
+    The Mail service (`services/mail`) receives the inbound email. It extracts:
+
+    - The email body (plain text and HTML, stripped to readable text)
+    - The sender, recipients, and timestamp (stored as metadata)
+    - Attachments (routed to the file upload pipeline)
+  </Step>
+  <Step title="Route to Core for ingestion">
+    Parsed content is sent to the Core service's ingestion endpoint. From there it follows the standard pipeline: chunk → embed → store in pgvector.
+  </Step>
+</Steps>
+
+## What gets ingested
+
+| Content | Ingested? |
+| --- | --- |
+| Email body (text/HTML) | ✅ Yes — text extracted and chunked |
+| Attachments (PDF, DOCX, etc.) | ✅ Yes — routed through file upload pipeline |
+| Images in email body | ❌ No — text-only extraction |
+| Email metadata (sender, date) | ✅ Stored as document metadata |
+| Email thread history | ⚠️ Included if present in forwarded email |
+
+## Mail service responsibilities
+
+The Mail service (`services/mail`) handles both directions of email:
+
+| Direction | Purpose |
+| --- | --- |
+| **Inbound** | Parse project emails, route content to Core for ingestion |
+| **Outbound** | Send notification emails (job complete, agent output ready, team invites) |
+
+**Default port:** `5002`
+
+## Handling email threads
+
+When you forward a thread, the entire quoted history is included in the forwarded email body. The chunking step will capture this, so older parts of the thread that contain relevant context will be indexed. Keep this in mind when forwarding — forwarding the last email in a thread typically captures the whole discussion.
+
+## Security
+
+The inbound email address is project-specific and **not guessable** (contains a project-specific token). Anyone who knows the address can send content to that project's knowledge base — keep it within your team.
+
+<Warning>
+  Do not share your project's inbound email address publicly. Treat it like an API key — it controls what gets written into your project's knowledge base.
+</Warning>
+
+## Current status
+
+Email parsing infrastructure is scaffolded. Inbound email routing and the attachment-to-file-upload pipeline are in active development.

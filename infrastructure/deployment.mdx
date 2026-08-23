@@ -1,0 +1,100 @@
+---
+title: "Deploying Services"
+description: "How each of SpecAI's 12 services deploys: Vercel for the frontend, Render for backend services, manual for Python agents"
+---
+
+Each service deploys independently. Merging to `production` triggers the CD workflow in GitHub Actions, which only redeploys the services that actually changed.
+
+## Frontend: Vercel (`apps/web`)
+
+The Next.js frontend deploys to **Vercel**.
+
+### CD workflow steps
+
+```yaml
+- checkout
+- pnpm + node setup (Node 22, pnpm via corepack)
+- pnpm install (from repo root)
+- vercel pull --yes --environment=production    # must run from repo root
+- vercel build --prod                           # must run from repo root
+- vercel deploy --prebuilt --prod
+```
+
+### Critical Vercel configuration
+
+<Warning>
+  These were hard-won fixes during initial setup — do not revert them.
+</Warning>
+
+| Setting | Value | Why |
+| --- | --- | --- |
+| Vercel Dashboard Root Directory | `apps/web` | Points Vercel at the Next.js app |
+| "Include files outside Root Directory" | **ON** | Required for pnpm hoisted deps to be found |
+| `outputFileTracingRoot` in `next.config.ts` | Monorepo root | Allows Next.js to trace hoisted dependencies |
+| `.npmrc` `node-linker=hoisted` | At repo root | Produces real files instead of symlinks — required for Next.js output file tracing |
+| `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | Set on every step (pull, build, deploy) | Omitting them on `vercel pull` causes it to auto-scan the whole monorepo |
+
+### Required GitHub secrets
+
+```text
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+```
+
+## Backend services: Render (TypeScript)
+
+The five TypeScript backend services (`core`, `auth`, `mail`, `jobs`, `connectors`) deploy to **Render**.
+
+### How it works
+
+Each service has its own Render Deploy Hook URL stored as a GitHub secret. When CD detects that a service's path changed, it fires that hook:
+
+```yaml
+- name: Deploy Core to Render
+  if: needs.detect-changes.outputs.core == 'true'
+  run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_CORE }}
+```
+
+Render then pulls the latest commit and builds the Docker image itself — no build step in the CD workflow for these services.
+
+### Required GitHub secrets (one per service)
+
+```text
+RENDER_DEPLOY_HOOK_CORE
+RENDER_DEPLOY_HOOK_AUTH
+RENDER_DEPLOY_HOOK_MAIL
+RENDER_DEPLOY_HOOK_JOBS
+RENDER_DEPLOY_HOOK_CONNECTORS
+```
+
+## Python agents: Render (manual for now)
+
+The six Python agents are **not yet wired into the CD workflow**. They are currently deployed manually via Render's dashboard.
+
+<Info>
+  **Open item:** Add a `deploy-agents` matrix job to `cd.yml`, mirroring the pattern of the TypeScript service deploy jobs. You'll need one `RENDER_DEPLOY_HOOK_<AGENT>` secret per agent.
+</Info>
+
+Required secrets once wired up:
+
+```text
+RENDER_DEPLOY_HOOK_BOT
+RENDER_DEPLOY_HOOK_DOC
+RENDER_DEPLOY_HOOK_SCENARIOS
+RENDER_DEPLOY_HOOK_INSIGHTS
+RENDER_DEPLOY_HOOK_JIRA
+RENDER_DEPLOY_HOOK_CONFLUENCE
+```
+
+## Path-filtered deploys
+
+The `detect-changes` job uses `dorny/paths-filter`. Only services with code changes in their path trigger a deploy. A change to `services/core/**` only redeploys Core — not the other five services.
+
+**Exception:** changes to `services/agents/common/**` (the shared agent library) should trigger all six agent deploys, since each agent bakes the shared code into its own image.
+
+## Checking deployment status
+
+- **Vercel:** [vercel.com/dashboard](https://vercel.com/dashboard) — view build logs and deployments
+- **Render:** [render.com/dashboard](https://render.com/dashboard) — view service logs and deploy history
+- **GitHub Actions:** Check the `cd.yml` workflow run in the Actions tab of the repo

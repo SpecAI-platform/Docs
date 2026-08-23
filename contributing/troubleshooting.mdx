@@ -1,0 +1,161 @@
+---
+title: "Troubleshooting"
+description: "Solutions to common issues encountered when setting up and running SpecAI locally"
+---
+
+This page documents every known local development issue and its fix. If you hit something new, add it here.
+
+## `pnpm: command not found`
+
+**Cause:** pnpm is not installed globally.
+
+**Fix:**
+
+```bash
+npm install -g pnpm
+# or via Corepack (Node.js built-in):
+corepack enable pnpm
+```
+
+Then restart your terminal and try again.
+
+---
+
+## "Paging file too small" error (Windows)
+
+**Cause:** Running 12 services simultaneously (Next.js Turbopack, 5 Node/tsx watchers, 6 Python/uvicorn processes) consumes significant RAM. Windows virtual memory is exhausted.
+
+**Fix:**
+
+1. Open **Advanced System Settings** → **Performance** → **Virtual Memory**
+2. Increase the page file size (set a custom size: Initial = 4096 MB, Maximum = 8192 MB or higher)
+3. Restart your machine
+4. Run `pnpm dev` again
+
+Alternatively, run only the services you need:
+
+```bash
+pnpm turbo run dev --filter=core --filter=auth --filter=web
+```
+
+---
+
+## `ModuleNotFoundError: No module named 'agent_common'`
+
+**Cause:** The `agent-common` shared Python library isn't installed in the agent's virtual environment, or it's out of sync.
+
+**Fix:**
+
+```bash
+cd services/agents/<agent-name>
+uv sync --reinstall-package agent-common
+```
+
+If that doesn't work:
+
+```bash
+uv sync --reinstall
+```
+
+---
+
+## Service works with `pnpm dev` but fails with `pnpm turbo run build`
+
+**Cause:** Dev mode (`tsx watch`) runs TypeScript without strict type-checking — it transpiles and ignores type errors. `turbo run build` uses `tsc` which enforces all types.
+
+**Fix:** Read the TypeScript errors from `turbo run build` output. Common causes:
+
+- `moduleResolution` mismatch in `tsconfig.json` (should be `bundler` or `node16` consistently)
+- Genuine type errors that dev mode was silently swallowing
+- Missing type definitions for a dependency (`@types/...` package not installed)
+
+---
+
+## `pytest` exits with code 5 ("no tests collected")
+
+**Cause:** A Python agent's test directory is empty or missing. `pytest` exits with code 5 when it finds no tests — this fails the required CI status check permanently.
+
+**Fix:** Ensure each agent has at least one test file:
+
+```bash
+ls services/agents/<agent-name>/tests/
+# Should show at least one test_*.py file
+```
+
+If empty, add a placeholder:
+
+```python
+# tests/test_placeholder.py
+def test_placeholder():
+    """Placeholder — replace with real tests as logic is built."""
+    assert True
+```
+
+---
+
+## Duplicate `pnpm-lock.yaml` or `pnpm-workspace.yaml`
+
+**Cause:** A `pnpm-lock.yaml` or `pnpm-workspace.yaml` was accidentally created inside an individual service folder.
+
+**Fix:** Delete the duplicate. There should be **exactly one** of each file, at the repo root:
+
+```bash
+# Check for duplicates
+find . -name "pnpm-lock.yaml" -not -path "./.git/*"
+find . -name "pnpm-workspace.yaml" -not -path "./.git/*"
+
+# Delete any that aren't at the repo root
+rm services/some-service/pnpm-lock.yaml
+```
+
+---
+
+## Vercel deploy fails with "cannot find module" or file tracing errors
+
+**Cause:** One of the critical Vercel configuration items is missing or was reverted.
+
+**Check these in order:**
+
+1. Root `.npmrc` contains `node-linker=hoisted`
+2. `apps/web/next.config.ts` has `outputFileTracingRoot` set to the monorepo root
+3. Vercel Dashboard → Project Settings → Root Directory = `apps/web`
+4. Vercel Dashboard → "Include files outside the Root Directory in the Build Step" = **ON**
+5. All three `vercel` CLI commands in `cd.yml` set `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`
+
+See [Deploying Services](/infrastructure/deployment) for the full configuration table.
+
+---
+
+## A service is red in `pnpm health` output
+
+**Cause:** The service failed to start or crashed after starting.
+
+**Fix:**
+
+1. Find that service's output in the `pnpm dev` terminal (labeled by service name)
+2. Read the error message — it will tell you what went wrong
+3. Common causes: missing `.env` value, port already in use, dependency not installed
+
+To check if a port is already in use (Windows):
+
+```powershell
+Get-NetTCPConnection -LocalPort 5000 | Select-Object OwningProcess
+```
+
+---
+
+## Git asks for credentials on every push
+
+**Cause:** Git is not caching credentials or SSH is not configured.
+
+**Fix (HTTPS):**
+
+```bash
+git config --global credential.helper store
+```
+
+**Fix (SSH):** Switch the remote to SSH:
+
+```bash
+git remote set-url origin git@github.com:NirajSalunke/SpecAI.git
+```

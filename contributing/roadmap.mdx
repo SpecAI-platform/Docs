@@ -1,0 +1,72 @@
+---
+title: "Development Roadmap"
+description: "Current status of SpecAI — what's done, what's in progress, and what's next"
+---
+
+This page tracks the current state of SpecAI development. It's a living document — update it as work is completed or priorities shift.
+
+<Info>
+  **Last updated:** August 2026 — keep this timestamp current when making significant updates.
+</Info>
+
+## What's complete
+
+## In progress
+
+<Warning>
+  Items below are actively being worked on — coordinate before starting work in these areas.
+</Warning>
+
+- **Database schema design** — finalizing Postgres table structures for projects, documents, embeddings, RBAC, agent jobs
+- **Caching layer wiring** — connecting Redis (Upstash) to all services for JWKS, RBAC, RAG, and job-status caching
+- **Realtime layer wiring** — Supabase Realtime subscriptions in `apps/web` for live ingestion and agent job status
+- **Agent logic build-out** — all six agents are scaffolded; real generation/retrieval logic is being built service by service
+
+## Upcoming work
+
+### Short term
+
+- [ ] Wire CD for Python agents (add `deploy-agents` matrix job to `cd.yml`, add Render deploy hook secrets)
+- [ ] Build browser extension (`apps/extension`) — currently scaffold only, excluded from CI
+- [ ] Implement email ingestion pipeline in `services/mail`
+- [ ] Implement GitHub webhook processing in `services/connectors`
+- [ ] Database migrations and schema implementation
+
+### Medium term
+
+- [ ] JIRA OAuth integration (Connectors service)
+- [ ] Confluence OAuth integration (Connectors service)
+- [ ] SRS Agent — full MoSCoW generation logic
+- [ ] Chatbot Agent — RAG pipeline \+ streaming response
+- [ ] Insights Agent — risk/gap analysis output schema \+ generation
+- [ ] Tester Agent — test case generation from requirements context
+- [ ] JIRA Agent — ticket creation via Connectors
+- [ ] Confluence Agent — page creation/update via Connectors
+
+### Longer term
+
+- [ ] Replace placeholder pytest tests with real unit/integration tests across all agents
+- [ ] Browser extension implementation (Chrome \+ Firefox)
+- [ ] End-to-end integration testing across services
+- [ ] Move from free-tier Render instances to paid (eliminates cold start latency)
+- [ ] Multi-LLM support (add Anthropic/Claude alongside Gemini \+ GPT)
+
+## Known gaps and decisions deferred
+
+| Topic | Status | Notes |
+| --- | --- | --- |
+| Go services | Abandoned | Earlier plan used Go for some services; switched to TypeScript-only for better JIRA/Confluence SDK support |
+| Separate vector DB | Not needed | pgvector in Postgres replaces a dedicated Pinecone/Weaviate; staying with this approach |
+| Agent CD | Not yet wired | Python agents deploy manually via Render dashboard until `deploy-agents` job is added |
+| Browser extension CI | Excluded | `apps/extension` commented out of CI matrix until scaffolded |
+
+## Architecture decisions log
+
+All significant architecture decisions (tech stack changes, infrastructure choices, design pivots) are documented in the architecture section of this docs site:
+
+- [Architecture Overview](/architecture/overview)
+- [Services & Boundaries](/architecture/services)
+- [Security Model](/architecture/security)
+- [Hosting & Infrastructure](/infrastructure/hosting)
+
+When making a significant architectural decision, add a note here with a brief rationale, then link to the relevant architecture page.

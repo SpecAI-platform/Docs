@@ -77,8 +77,13 @@
         "pages": [
           "infrastructure/cicd",
           "infrastructure/branch-protection",
-          "infrastructure/deployment"
+          "infrastructure/deployment",
+          "infrastructure/hosting"
         ]
+      },
+      {
+        "group": "Contributing",
+        "pages": []
       }
     ]
   },

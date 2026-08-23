@@ -45,7 +45,8 @@
         "pages": [
           "architecture/overview",
           "architecture/services",
-          "architecture/caching"
+          "architecture/caching",
+          "architecture/security"
         ]
       }
     ]

@@ -9,86 +9,30 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    },
     "groups": [
       {
         "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
+        "pages": ["index", "quickstart"]
       },
       {
         "group": "Architecture",
-        "pages": [
-          "architecture/overview",
-          "architecture/services",
-          "architecture/caching",
-          "architecture/security"
-        ]
+        "pages": ["architecture/overview", "architecture/services", "architecture/caching", "architecture/security"]
       },
       {
         "group": "AI Agents",
-        "pages": [
-          "agents/overview",
-          "agents/srs",
-          "agents/chatbot",
-          "agents/insights",
-          "agents/jira",
-          "agents/confluence",
-          "agents/tester"
-        ]
+        "pages": ["agents/overview", "agents/srs", "agents/chatbot", "agents/insights", "agents/jira", "agents/confluence", "agents/tester"]
       },
       {
         "group": "Ingestion & Integrations",
-        "pages": [
-          "ingestion/overview",
-          "ingestion/browser-extension",
-          "ingestion/file-upload",
-          "ingestion/email",
-          "ingestion/github",
-          "ingestion/jira-confluence"
-        ]
+        "pages": ["ingestion/overview", "ingestion/browser-extension", "ingestion/file-upload", "ingestion/email", "ingestion/github", "ingestion/jira-confluence"]
       },
       {
         "group": "CI/CD & Infrastructure",
-        "pages": [
-          "infrastructure/cicd",
-          "infrastructure/branch-protection",
-          "infrastructure/deployment",
-          "infrastructure/hosting"
-        ]
+        "pages": ["infrastructure/cicd", "infrastructure/branch-protection", "infrastructure/deployment", "infrastructure/hosting"]
       },
       {
         "group": "Contributing",
-        "pages": [
-          "contributing/guide",
-          "contributing/troubleshooting",
-          "contributing/env-vars",
-          "contributing/roadmap"
-        ]
+        "pages": ["contributing/guide", "contributing/troubleshooting", "contributing/env-vars", "contributing/roadmap"]
       }
     ]
   },
@@ -110,12 +54,7 @@
     }
   },
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "footer": {
     "socials": {

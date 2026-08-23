@@ -56,7 +56,8 @@
           "agents/srs",
           "agents/chatbot",
           "agents/insights",
-          "agents/jira"
+          "agents/jira",
+          "agents/confluence"
         ]
       }
     ]

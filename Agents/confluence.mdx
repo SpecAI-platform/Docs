@@ -1,0 +1,44 @@
+---
+title: "confluence"
+description: "Generates and publishes Confluence-ready pages from your project knowledge base — structured docs, summaries, and reports"
+icon: "user-robot"
+---
+
+## Overview
+
+The Confluence Agent turns content already captured in your SpecAI knowledge base into polished, structured Confluence pages — status reports, decision logs, summaries, or full documentation pages — and can publish them directly to a connected Confluence space.
+
+Like the [JIRA Agent](/Agents/jira), this handles the **write-back** half of the integration. For how existing Confluence pages are pulled _into_ SpecAI, see [Ingestion Overview](/Ingestion/overview).
+
+## What it does
+
+- Retrieves relevant context from the project knowledge base (pgvector similarity search over ingested content)
+- Drafts a page in Confluence's storage format, with headings, tables, and links structured for readability
+- Suggests a target space and parent page based on where similar content already lives
+- Optionally publishes the page directly via the Connectors service, or exports it for manual review first
+
+## How it works
+
+1. A user triggers the agent — either on a specific topic/thread, or with a free-text prompt describing the page they want (e.g. "write up this week's architecture decisions")
+2. The agent retrieves relevant chunks from the knowledge base using RAG
+3. It drafts the page content and shows it to the user for review before anything is published
+4. On confirmation, the request is sent through `services/connectors` (Express/TS) using the internal `X-Internal-Key` header, which handles the actual Confluence API call
+5. The published page's URL is stored back in the knowledge base, linking it to its source context
+
+## Trigger
+
+Available from:
+
+- A project thread or note (via the "Publish to Confluence" action)
+- The chat interface, by asking the Chatbot Agent to hand off to Confluence
+- Programmatically, through the agent's endpoint in `services/agents/confluence`
+
+## Tech
+
+Like SpecAI's other five agents, this is a Python/FastAPI service built with `uv`, sharing common RAG and prompt utilities from `libs/agent_common`.
+
+## Related
+
+- [JIRA & Confluence Integration](/Ingestion/jira-confluence) — the ingestion side of this connector
+- [JIRA Agent](/Agents/jira) — the equivalent agent for JIRA issues
+- [AI Agents Overview](/Agents/overview)

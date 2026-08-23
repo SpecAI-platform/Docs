@@ -54,7 +54,8 @@
         "pages": [
           "agents/overview",
           "agents/srs",
-          "agents/chatbot"
+          "agents/chatbot",
+          "agents/insights"
         ]
       }
     ]

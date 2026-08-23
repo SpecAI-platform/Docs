@@ -85,7 +85,8 @@
         "group": "Contributing",
         "pages": [
           "contributing/guide",
-          "contributing/troubleshooting"
+          "contributing/troubleshooting",
+          "contributing/env-vars"
         ]
       }
     ]
